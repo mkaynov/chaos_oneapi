@@ -307,7 +307,7 @@ void cudaLyapunov(int bn, int bs, size_t taskNum, bool isQr, bool isVar, ModelTy
                   double *argQ, double *k1Q, double *k2Q, double *k3Q,
                   double *k4Q, double *k5Q, double *k6Q, double *k7Q, double *k8Q, double *projSum) {
 
-		kernLEDverk_ << < bn, bs >> > (isQr, isVar, inits, closePoints, dimension, modelType, diffFunc, diffFuncVar, diffFuncVarQ,
+		kernLEDverk_ <<<bn, bs>>> (isQr, isVar, inits, closePoints, dimension, modelType, diffFunc, diffFuncVar, diffFuncVarQ,
             params, paramsDim, eps, integrationStep, lyapExps, expsNum,
             timeSkip, timeSkipClP, calcTime, taskNum, addSkipSteps,
 			U, R, Q,
