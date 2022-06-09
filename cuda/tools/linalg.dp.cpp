@@ -1,6 +1,7 @@
-#include "linalg.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "linalg.dp.hpp"
 
-__device__
 double dotProduct(double* firstVec, double* secondVec, int32_t length) {
 	double res = 0;
 	for (int32_t i = 0; i < length; i++)
@@ -8,15 +9,15 @@ double dotProduct(double* firstVec, double* secondVec, int32_t length) {
 	return res;
 }
 
-__device__
+SYCL_EXTERNAL
 double vecNorm(double* vec, int32_t length) {
 	double norm = 0;
 	for (int32_t i = 0; i < length; i++)
 		norm += vec[i] * vec[i];
-	return sqrt(norm);
+        return sycl::sqrt(norm);
 }
 
-__device__
+SYCL_EXTERNAL
 void normalizeVecs(double* vecs, int32_t dimension, int32_t numVec, double eps) {
 	double norm = 0;
 	for (int32_t i = 0; i < numVec; i++) {
@@ -26,12 +27,13 @@ void normalizeVecs(double* vecs, int32_t dimension, int32_t numVec, double eps) 
 	}
 }
 
-__device__
+
 double getAngle(double* vec1, double* vec2, double dimension) {
-    return acos((dotProduct(vec1, vec2, dimension)) / (vecNorm(vec1, dimension) * vecNorm(vec2, dimension)));
+    return sycl::acos((dotProduct(vec1, vec2, dimension)) /
+                      (vecNorm(vec1, dimension) * vecNorm(vec2, dimension)));
 }
 
-__device__
+SYCL_EXTERNAL
 void ortVecs(double* vecs, int32_t dimension, int32_t numVecs, double* projSum) {
 	double projCoeff = 0;
 
@@ -48,7 +50,7 @@ void ortVecs(double* vecs, int32_t dimension, int32_t numVecs, double* projSum) 
 	}
 }
 
-__device__
+
 void matrixTranspose(double* matr, int32_t rows, int32_t cols) {
 	double temp;
 
@@ -62,7 +64,7 @@ void matrixTranspose(double* matr, int32_t rows, int32_t cols) {
 		}
 }
 
-__device__
+
 void matrixMult(double* res, double* A, int32_t rowsA, int32_t colsA, double* B, int32_t rowsB, int32_t colsB) {
 	for (int32_t i = 0; i < rowsA; i++)
 		for (int32_t j = 0; j < colsB; j++) {
@@ -72,7 +74,7 @@ void matrixMult(double* res, double* A, int32_t rowsA, int32_t colsA, double* B,
 		}
 }
 
-__device__
+
 double dotProductColMaj(double* firstVec, double* secondVec, int32_t rows, int32_t cols) {
 	double res = 0;
 	for (int32_t i = 0; i < rows; i++)
@@ -80,15 +82,15 @@ double dotProductColMaj(double* firstVec, double* secondVec, int32_t rows, int32
 	return res;
 }
 
-__device__
+
 double vecNormColMaj(double* vec, int32_t rows, int32_t cols) {
 	double norm = 0;
 	for (int32_t i = 0; i < rows; i++)
 		norm += vec[i * cols] * vec[i * cols];
-	return sqrt(norm);
+        return sycl::sqrt(norm);
 }
 
-__device__
+
 void normalizeVecsColMaj(double* vecs, int32_t rows, int32_t cols, double eps) {
 	double norm = 0;
 	for (int32_t i = 0; i < rows; i++) {
@@ -98,7 +100,7 @@ void normalizeVecsColMaj(double* vecs, int32_t rows, int32_t cols, double eps) {
 	}
 }
 
-__device__
+
 void ortVecsColMaj(double* vecs, int32_t rows, int32_t cols, double* projSum) {
 	double projCoeff = 0;
 
@@ -115,7 +117,7 @@ void ortVecsColMaj(double* vecs, int32_t rows, int32_t cols, double* projSum) {
 	}
 }
 
-__device__
+SYCL_EXTERNAL
 void qrDecomposition(double* R, double* Q, double* A, int32_t rows, int32_t cols, double* projSum) {
 	memcpy(Q, A, rows * cols * sizeof(double));
 	ortVecsColMaj(Q, rows, cols, projSum);

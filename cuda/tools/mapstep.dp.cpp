@@ -1,8 +1,9 @@
 
-#include "MapStep.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "MapStep.dp.hpp"
 
-
-__device__
+SYCL_EXTERNAL
 void StepMAP(double* val, diffSysFunc diffFunc, double* params, double* arg, const int32_t dimension) {
 
 	diffFunc(val, arg, params);
@@ -10,7 +11,7 @@ void StepMAP(double* val, diffSysFunc diffFunc, double* params, double* arg, con
 		val[ii] = arg[ii];
 }
 
-__device__
+SYCL_EXTERNAL
 void StepMAPVAR(double* val, diffSysFuncVar diffFuncVar, double* params, double* arg, const int32_t dimension, double* mainTraj) {
 
 	diffFuncVar(val, arg, params, mainTraj);

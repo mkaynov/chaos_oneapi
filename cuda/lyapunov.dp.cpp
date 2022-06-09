@@ -1,7 +1,7 @@
-#include "lyapunov.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "lyapunov.dp.hpp"
 
-
-__device__
 void deviceLESpectrumDverk_(double* mainTrajectory, double* slaveTrajectories, const int32_t dimension, const ModelType type, diffSysFunc diffFunc, double* params, double eps, double* lyapExp, int32_t expsNum,
 	double step, double timeSkip, double timeSkipClP, double calcTime, double addSkipSteps, double* arg, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double* k7, double* k8, double* projSum) {
 
@@ -49,9 +49,14 @@ void deviceLESpectrumDverk_(double* mainTrajectory, double* slaveTrajectories, c
 				ortVecs(slaveTrajectories, dimension, expsNum, projSum);
 
 				for (int32_t i = 0; i < expsNum; i++)
-					lyapExp[i] += log(vecNorm(&slaveTrajectories[i * dimension], dimension) / eps);
+                                        lyapExp[i] += sycl::log(
+                                            vecNorm(
+                                                &slaveTrajectories[i *
+                                                                   dimension],
+                                                dimension) /
+                                            eps);
 
-				normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
+                                normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
 
 				for (int32_t i = 0; i < expsNum; i++) {
 					for (int32_t j = 0; j < dimension; j++)
@@ -104,9 +109,12 @@ void deviceLESpectrumDverk_(double* mainTrajectory, double* slaveTrajectories, c
 			ortVecs(slaveTrajectories, dimension, expsNum, projSum);
 
 			for (int32_t i = 0; i < expsNum; i++)
-				lyapExp[i] += log(vecNorm(&slaveTrajectories[i * dimension], dimension) / eps);
+                                lyapExp[i] += sycl::log(
+                                    vecNorm(&slaveTrajectories[i * dimension],
+                                            dimension) /
+                                    eps);
 
-			normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
+                        normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
 
 			for (int32_t i = 0; i < expsNum; i++) {
 				for (int32_t j = 0; j < dimension; j++)
@@ -121,7 +129,7 @@ void deviceLESpectrumDverk_(double* mainTrajectory, double* slaveTrajectories, c
 }
 
 
-__device__
+
 void deviceLESpectrumVARDverk_(double* mainTrajectory, double* slaveTrajectories, const int32_t dimension, const ModelType type, diffSysFunc diffFunc, diffSysFuncVar diffFuncVar, double* params, double eps, double* lyapExp, int32_t expsNum,
 	double step, double timeSkip, double timeSkipClP, double calcTime, double addSkipSteps, double* arg, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double* k7, double* k8, double* projSum) {
 
@@ -158,9 +166,14 @@ void deviceLESpectrumVARDverk_(double* mainTrajectory, double* slaveTrajectories
 				ortVecs(slaveTrajectories, dimension, expsNum, projSum);
 
 				for (int32_t i = 0; i < expsNum; i++)
-					lyapExp[i] += log(vecNorm(&slaveTrajectories[i * dimension], dimension) / eps);
+                                        lyapExp[i] += sycl::log(
+                                            vecNorm(
+                                                &slaveTrajectories[i *
+                                                                   dimension],
+                                                dimension) /
+                                            eps);
 
-				normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
+                                normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
 				skipCount = 0;
 			}
 		}
@@ -197,9 +210,12 @@ void deviceLESpectrumVARDverk_(double* mainTrajectory, double* slaveTrajectories
 			ortVecs(slaveTrajectories, dimension, expsNum, projSum);
 
 			for (int32_t i = 0; i < expsNum; i++)
-				lyapExp[i] += log(vecNorm(&slaveTrajectories[i * dimension], dimension) / eps);
+                                lyapExp[i] += sycl::log(
+                                    vecNorm(&slaveTrajectories[i * dimension],
+                                            dimension) /
+                                    eps);
 
-			normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
+                        normalizeVecs(slaveTrajectories, dimension, expsNum, eps);
 			skipCount = 0;
 			
 		}
@@ -209,7 +225,7 @@ void deviceLESpectrumVARDverk_(double* mainTrajectory, double* slaveTrajectories
 		lyapExp[i] = lyapExp[i] / calcTime;
 }
 
-__device__
+
 void deviceLESpectrumQR_(double* mainTrajectory, double* slaveTrajectories, const int32_t dimension, diffSysFunc diffFunc, diffSysFuncVar linearQ,
 	double* params, double eps, double* lyapExp, int32_t expsNum,
 	double step, double timeSkip, double timeSkipClP, double calcTime, double addSkipSteps,
@@ -234,24 +250,26 @@ void deviceLESpectrumQR_(double* mainTrajectory, double* slaveTrajectories, cons
 		qrDecomposition(R, Q, U, dimension, expsNum, projSum);
 
 		for (int32_t i = 0; i < expsNum; i++)
-			lyapExp[i] += log(fabs(R[i  * expsNum + i]));
-	}
+                        lyapExp[i] += sycl::log(sycl::fabs(R[i * expsNum + i]));
+        }
 
 	for (int32_t i = 0; i < expsNum; i++) {
 		lyapExp[i] = lyapExp[i] / calcTime;
 	}
 }
 
-__global__
+
 void kernLEDverk_(bool is_qr, bool is_var, double* inits, double* closePoints, const int32_t dimension, const ModelType type, diffSysFunc diffFunc, diffSysFuncVar diffFuncVar, diffSysFuncVar modelJacobian,
 	double* params, int32_t paramsDim, double eps, double step, double* lyapExps,
 	int32_t expsNum, double timeSkip, double timeSkipClP, double calcTime, int32_t knodsNum, double addSkipSteps,
 	double* U, double* R, double* Q,
 	double* arg, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double* k7, double* k8, double* projSum,
-	double* argQ, double* k1Q, double* k2Q, double* k3Q, double* k4Q, double* k5Q, double* k6Q, double* k7Q, double* k8Q) {
-	
-	int32_t index = blockIdx.x * blockDim.x + threadIdx.x;
-	int32_t stride = blockDim.x * gridDim.x;
+	double* argQ, double* k1Q, double* k2Q, double* k3Q, double* k4Q, double* k5Q, double* k6Q, double* k7Q, double* k8Q,
+	sycl::nd_item<3> item_ct1, const sycl::stream &stream_ct1) {
+
+        int32_t index = item_ct1.get_group(2) * item_ct1.get_local_range(2) +
+                        item_ct1.get_local_id(2);
+        int32_t stride = item_ct1.get_local_range(2) * item_ct1.get_group_range(2);
 
     if (!is_qr) {
         if(!is_var) {
@@ -263,7 +281,8 @@ void kernLEDverk_(bool is_qr, bool is_var, double* inits, double* closePoints, c
         }
         else {
             if (diffFuncVar == nullptr) {
-                printf("Model doesn't have VAR function. Please add it to the model\n");
+                stream_ct1 << "Model doesn't have VAR function. Please add it "
+                              "to the model\n";
                 return;
             }
             for (int32_t i = index; i < knodsNum; i += stride) {
@@ -276,12 +295,14 @@ void kernLEDverk_(bool is_qr, bool is_var, double* inits, double* closePoints, c
 	}
 	else {
 		if (modelJacobian == nullptr) {
-			printf("Model doesn't have Jacobian function. Please add it to the model\n");
-			return;
+                        stream_ct1 << "Model doesn't have Jacobian function. "
+                                      "Please add it to the model\n";
+                        return;
 		}
 		if (type == ModelType::map) {
-			printf("Map model cant use Jacobian method. Please choose another method\n");
-			return;
+                        stream_ct1 << "Map model cant use Jacobian method. "
+                                      "Please choose another method\n";
+                        return;
 		}
 		for (int32_t i = index; i < knodsNum; i += stride) {
 			int32_t intInd = index * dimension;
@@ -307,11 +328,41 @@ void cudaLyapunov(int bn, int bs, size_t taskNum, bool isQr, bool isVar, ModelTy
                   double *argQ, double *k1Q, double *k2Q, double *k3Q,
                   double *k4Q, double *k5Q, double *k6Q, double *k7Q, double *k8Q, double *projSum) {
 
-		kernLEDverk_ <<<bn, bs>>> (isQr, isVar, inits, closePoints, dimension, modelType, diffFunc, diffFuncVar, diffFuncVarQ,
-            params, paramsDim, eps, integrationStep, lyapExps, expsNum,
-            timeSkip, timeSkipClP, calcTime, taskNum, addSkipSteps,
-			U, R, Q,
-			arg, k1, k2, k3, k4, k5, k6, k7, k8, projSum,
-			argQ, k1Q, k2Q, k3Q, k4Q, k5Q, k6Q, k7Q, k8Q);
+    bn = 32;
+    bs = 32;
+                /*
+                DPCT1049:0: The work-group size passed to the SYCL kernel may
+                exceed the limit. To get the device limit, query
+                info::device::max_work_group_size. Adjust the work-group size if
+                needed.
+                */
+                dpct::get_default_queue().submit([&](sycl::handler &cgh) {
+                                sycl::stream stream_ct1(64 * 1024, 80, cgh);
+
+                                cgh.parallel_for(
+                                    sycl::nd_range<3>(
+                                        sycl::range<3>(1, 1, bn) *
+                                            sycl::range<3>(1, 1, bs),
+                                        sycl::range<3>(1, 1, bs)),
+                                    [=](sycl::nd_item<3> item_ct1) {
+                                                    kernLEDverk_(
+                                                        isQr, isVar, inits,
+                                                        closePoints, dimension,
+                                                        modelType, diffFunc,
+                                                        diffFuncVar,
+                                                        diffFuncVarQ, params,
+                                                        paramsDim, eps,
+                                                        integrationStep,
+                                                        lyapExps, expsNum,
+                                                        timeSkip, timeSkipClP,
+                                                        calcTime, taskNum,
+                                                        addSkipSteps, U, R, Q,
+                                                        arg, k1, k2, k3, k4, k5,
+                                                        k6, k7, k8, projSum,
+                                                        argQ, k1Q, k2Q, k3Q,
+                                                        k4Q, k5Q, k6Q, k7Q, k8Q,
+                                                        item_ct1, stream_ct1);
+                                    });
+                });
 }
 

@@ -1,9 +1,11 @@
 #pragma once
 
-#include <model_factory.h>
-#include "tools/dverk.cuh"
-#include "tools/MapStep.cuh"
-#include "tools/linalg.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "model_factory.h"
+#include "tools/dverk.dp.hpp"
+#include "tools/MapStep.dp.hpp"
+#include "tools/linalg.dp.hpp"
 
 void cudaLyapunov(int bn, int bs, size_t taskNum, bool isQr, bool isVar, ModelType modelType, double *inits,
                   double *closePoints, const int32_t dimension, diffSysFunc diffFunc, diffSysFuncVar diffFuncVar, diffSysFuncVar diffFuncVarQ,

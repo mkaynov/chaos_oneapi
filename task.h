@@ -1,7 +1,8 @@
 #ifndef CHAOS_TASK_H
 #define CHAOS_TASK_H
 
-#include "cuda_runtime.h"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
 #include "memory"
 #include "tool_params.h"
 #include "consts.h"
@@ -14,7 +15,7 @@ class Task {
         uint32_t clear;
     };
 public:
-    Task() : mBlockSize(DEFAULT_BLOCK_SIZE), mBlockNum(DEFAULT_BLOCK_NUM), mClocks({0, 0, 0}), mReady(false) {};
+    Task() : mBlockSize(DEFAULT_BLOCK_SIZE), mBlockNum(DEFAULT_BLOCK_NUM), mClocks({ 0, 0, 0 }), mReady(false) {};
 
     virtual int init(std::shared_ptr<Parameters> paramsBase, const std::string &modelName) = 0;
 
@@ -24,11 +25,11 @@ public:
 
     virtual int clear() = 0;
 
-    virtual bool isReady() final {return mReady;}
+    virtual bool isReady() final { return mReady; }
 
-    virtual uint32_t getAllocationTime() {return mClocks.allocate;}
+    virtual uint32_t getAllocationTime() { return mClocks.allocate; }
 
-    virtual uint32_t getExecutionTime() {return mClocks.execute;}
+    virtual uint32_t getExecutionTime() { return mClocks.execute; }
 
     virtual std::vector<std::vector<double>> &accessResult() = 0;
 
@@ -42,12 +43,23 @@ public:
     }
 
 protected:
-    static bool allocateDoublesCuda(double **ptr, size_t size) {
-        if (cudaMalloc(ptr, size * sizeof(double))) {
+    static bool allocateDoublesCuda(double **ptr, size_t size) try {
+        /*
+        DPCT1003:0: Migrated API does not return error code. (*, 0) is inserted.
+        You may need to rewrite this code.
+        */
+        if ((*ptr =
+            sycl::malloc_device<double>(size, dpct::get_default_queue()),
+            0)) {
             printf("failed to allocate %llu Mbytes on CUDA\n", size * sizeof(double) / 1024 / 1024);
             return false;
         }
         return true;
+    }
+    catch (sycl::exception const &exc) {
+        std::cerr << exc.what() << "Exception caught at file:" << __FILE__
+            << ", line:" << __LINE__ << std::endl;
+        std::exit(1);
     };
     size_t mBlockSize;
     size_t mBlockNum;
@@ -57,7 +69,7 @@ protected:
     bool mReady;
 
     friend int32_t saveCalculatedData(ToolID tool_id, const std::string &modelName, const Parameters *params,
-                                      const Task*);
+        const Task*);
 };
 
 #endif //CHAOS_TASK_H

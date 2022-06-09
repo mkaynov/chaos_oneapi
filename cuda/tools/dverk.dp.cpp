@@ -1,8 +1,10 @@
-#pragma once 
+#pragma once
 
-#include "dverk.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "dverk.dp.hpp"
 
-__device__
+SYCL_EXTERNAL
 void dverkStep(double* val, const int32_t dimension, diffSysFunc diffFunc, double* params, double step,
 	double* arg, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double* k7, double* k8) {
 	
@@ -40,8 +42,7 @@ void dverkStep(double* val, const int32_t dimension, diffSysFunc diffFunc, doubl
 	}
 }
 
-
-__device__
+SYCL_EXTERNAL
 void dverkStepVarMat(double* val, const int32_t dimension, diffSysFuncVar diffFuncVar, double* params, double step,
 	double* arg, double* mainTraj, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double* k7, double* k8) {
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
 #include <vector>
 #include <functional>
 
@@ -13,8 +15,6 @@
 //#include "Eigenvalues"
 #include <cstdlib>
 #include <iostream>
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
 #include <chrono>
 #include "types.h"
 

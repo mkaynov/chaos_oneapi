@@ -1,8 +1,9 @@
-#pragma once 
+#pragma once
 
-#include "dopri.cuh"
+#include <CL/sycl.hpp>
+#include <dpct/dpct.hpp>
+#include "dopri.dp.hpp"
 
-__device__
 void dopriStep(double* val, int dimension, diffSysFunc diffFunc, double* params, double& step, double maxStep, double tolLocErr, double tolGlobErr,
 	double* spareVal, double* ySti, double* arg, double* k1, double* k2, double* k3, double* k4, double* k5, double* k6, double& time, double& facOld) {
 	double safeFac = 0.9;
@@ -56,8 +57,8 @@ void dopriStep(double* val, int dimension, diffSysFunc diffFunc, double* params,
 
 stepRejected:
 
-	maxStep = fabs(maxStep);
-	double denom = 0;
+        maxStep = sycl::fabs(maxStep);
+        double denom = 0;
 	double newStep = 0;
 	int32_t memsize = sizeof(double) * dimension;
 	memcpy(spareVal, val, memsize);
@@ -97,13 +98,20 @@ stepRejected:
 	err = 0.;
 	sk = 0.;
 	for (int i = 0; i < dimension; i++) {
-		sk = tolLocErr + tolGlobErr * (fabs(val[i]) > fabs(arg[i]) ? fabs(val[i]) : fabs(arg[i]));  //std::max(abs(val[i]), abs(arg[i]))
-		err = err + pow((k4[i] / sk), 2);
-	}
-	err = sqrt(err / dimension);
-	fac11 = pow(err, expo1);
-	fac = fac11 / pow(facOld, beta); //std::max(facc2, std::min(facc1, fac / safeFac))
-	fac = facc2 > (facc1 < (fac / safeFac) ? facc1 : (fac / safeFac)) ? facc2 : (facc1 < (fac / safeFac) ? facc1 : (fac / safeFac));// fac1 <= newStep / step <= fac2 (//fac = std::max(facc2, std::min(facc1, fac / safeFac)); )
+                sk = tolLocErr +
+                     tolGlobErr * (sycl::fabs(val[i]) > sycl::fabs(arg[i])
+                                       ? sycl::fabs(val[i])
+                                       : sycl::fabs(arg[i])); // std::max(abs(val[i]),
+                                                              // abs(arg[i]))
+                err = err + (k4[i] / sk) * (k4[i] / sk);
+        }
+        err = sycl::sqrt(err / dimension);
+        fac11 = sycl::pow<double>(err, expo1);
+        fac = fac11 /
+              sycl::pow<double>(
+                  facOld,
+                  beta); // std::max(facc2, std::min(facc1, fac / safeFac))
+        fac = facc2 > (facc1 < (fac / safeFac) ? facc1 : (fac / safeFac)) ? facc2 : (facc1 < (fac / safeFac) ? facc1 : (fac / safeFac));// fac1 <= newStep / step <= fac2 (//fac = std::max(facc2, std::min(facc1, fac / safeFac)); )
 	newStep = step / fac;
 	if (err <= 1.) {					//step accepted
 		facOld = err > 1e-4 ? err : 1e-4; //std::max(err, 1.0E-4)
@@ -111,11 +119,14 @@ stepRejected:
 			k1[i] = k2[i];
 			val[i] = arg[i];
 		}
-		if (fabs(newStep) > maxStep)
-			newStep = maxStep;
+                if (sycl::fabs(newStep) > maxStep)
+                        newStep = maxStep;
 		if (isReject)
-			newStep = fabs(newStep) < fabs(step) ? fabs(newStep) : fabs(step); // std::min(abs(newStep), abs(step))
-		isReject = false;
+                        newStep = sycl::fabs(newStep) < sycl::fabs(step)
+                                      ? sycl::fabs(newStep)
+                                      : sycl::fabs(step); // std::min(abs(newStep),
+                                                          // abs(step))
+                isReject = false;
 		time += step;
 		step = newStep;
 	}
